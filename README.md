@@ -29,7 +29,7 @@ Além da implementação, o projeto também envolveu **troubleshooting real** de
 
 ## 🏗️ Arquitetura da Solução
 
-> **Diagrama de arquitetura** *(sugestão: adicionar imagem do draw.io ou Lucidchart aqui)*
+> **Diagrama de arquitetura**
 
 ### Componentes Utilizados
 
