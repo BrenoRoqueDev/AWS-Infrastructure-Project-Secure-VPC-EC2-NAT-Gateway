@@ -67,7 +67,7 @@ Além da implementação, o projeto também envolveu **troubleshooting real** de
 Configuração da VPC principal com CIDR `10.0.0.0/16`, DNS Hostnames habilitado e ambiente preparado para sub-redes públicas e privadas.
 
 ![Criando a VPC](images/CriandoVPC1.png)
-![VPC Criada](images/vpcCriada1.png)
+![VPC Criada com sucesso](images/vpcCriada1.png)
 
 ---
 
@@ -77,14 +77,14 @@ Configuração da VPC principal com CIDR `10.0.0.0/16`, DNS Hostnames habilitado
 - CIDR: `10.0.0.0/24`
 - Auto-assign Public IP: habilitado
 
+![Public Subnet](images/PublicSUBNet1.png)
+![IP Automático habilitado](images/IPAutomatico.png)
+
 #### Private Subnet
 - CIDR: `10.0.2.0/23`
 - Sem acesso direto à internet
 
-![Criando Sub-rede](images/CriandoSUB-Rede1.png)
-![Public Subnet](images/PublicSUBNet1.png)
 ![Private Subnet](images/PrivateSUBNet1.png)
-![IP Automático habilitado](images/IPAutomatico.png)
 
 ---
 
@@ -105,10 +105,7 @@ Responsável pelo roteamento do tráfego externo da subnet pública:
 10.0.0.0/16 → local
 ```
 
-![Criando Tabela de Rota](images/CriandoTabelaDeRota1.png)
-![Editando Rotas - Gateway](images/EditarRotasGateway.png)
-![Tabela de Rotas com Gateway de Internet](images/TabelaDeRotasGatewaydaInternet.png)
-![Rota Gateway Internet](images/RotaGatewayDalnternet.png)
+![Tabela de Rotas com Internet Gateway](images/TabelaDeRotasGatewaydaInternet.png)
 
 #### Private Route Table
 
@@ -119,13 +116,7 @@ Responsável pelo roteamento da subnet privada via NAT Gateway:
 10.0.0.0/16 → local
 ```
 
-![Rota NAT Gateway](images/RotaGatewayNAT.png)
-![Configuração Rota NAT](images/RotaNATGateway4.png)
-![Rota Privada NAT](images/RotaPrivadaNat.png)
-
-> 💡 **Tabela de referência das rotas configuradas:**
-
-![Tabela de Rota Final](images/TabeladeRota1.png)
+![Rota Privada com NAT Gateway](images/RotaPrivadaNat.png)
 
 ---
 
@@ -150,7 +141,7 @@ Instância EC2 lançada na subnet pública, configurada como ponto de acesso seg
 | Security Group | SSH liberado (porta 22) |
 | Acesso | EC2 Instance Connect |
 
-![Bastion Server](images/EC2BastionServer.png)
+![Bastion Server em execução](images/EC2BastionServer.png)
 
 ---
 
@@ -166,7 +157,7 @@ Instância EC2 lançada na subnet privada, acessível somente via Bastion Host.
 | IP Público | Desabilitado |
 | Security Group | SSH liberado apenas para 10.0.0.0/16 |
 
-![Private Instance](images/PrivateInstance.png)
+![Bastion Server e Private Instance em execução](images/PrivateInstance.png)
 
 ---
 
@@ -194,24 +185,23 @@ Instância EC2 lançada na subnet privada, acessível somente via Bastion Host.
 
 ### Teste de conectividade da instância privada com a internet
 
-Com a instância privada acessada via Bastion, foi executado o seguinte comando para validar o acesso à internet pelo NAT Gateway:
+Com a instância privada acessada via Bastion, foram executados os seguintes comandos para validar o acesso à internet pelo NAT Gateway:
 
 ```bash
+# Teste via ping (ICMP)
+ping -c 3 8.8.8.8
+
+# Teste via HTTP
 curl -I https://amazon.com
 ```
 
-**Resultado obtido:**
-```
-HTTP/1.1 301 Moved Permanently
-Server: Server
-Connection: keep-alive
-```
+**Resultado do ping para 8.8.8.8:**
 
-✅ Conectividade confirmada com sucesso!
+![Teste de conectividade via ping](images/ping.png)
 
-![Resultado do teste de ping/curl](images/ping.png)
+✅ Conectividade confirmada com sucesso via NAT Gateway!
 
-> **Observação:** O comando `ping -c 3 amazon.com` retornou 100% de packet loss pois o amazon.com bloqueia ICMP (ping) em seus servidores. Isso é comportamento esperado e não indica falha de configuração. O `curl` confirmou que a conectividade via NAT Gateway estava funcionando corretamente.
+> **Observação:** O comando `ping -c 3 amazon.com` retorna 100% de packet loss pois o amazon.com bloqueia ICMP em seus servidores. O teste foi feito para `8.8.8.8` (DNS do Google), que confirmou a conectividade. O `curl -I https://amazon.com` também retornou `HTTP/1.1 301`, confirmando o acesso à internet via NAT Gateway.
 
 ---
 
@@ -221,11 +211,11 @@ Durante a implementação, alguns problemas foram encontrados e resolvidos:
 
 | Problema | Causa | Solução |
 |---|---|---|
-| `The route 0.0.0.0/0 already exists` | Tentativa de adicionar rota duplicada | Cancelar e verificar rotas existentes antes de adicionar |
-| Internet Gateway adicionado na Private Route Table | Confusão ao editar rota existente ao invés de adicionar nova | Remover a rota incorreta e adicionar IGW somente na Public Route Table |
-| Duas Public Route Tables criadas | Tabela duplicada por engano | Deletar a tabela duplicada e manter somente uma com a rota correta |
+| `The route 0.0.0.0/0 already exists` | Tentativa de adicionar rota duplicada | Verificar rotas existentes antes de adicionar novas |
+| Internet Gateway adicionado na Private Route Table | Confusão ao editar rota existente | Remover a rota incorreta e adicionar IGW somente na Public Route Table |
+| Duas Public Route Tables criadas | Tabela duplicada por engano | Deletar a duplicada e manter somente uma com a rota correta |
 | `Failed to connect` no EC2 Instance Connect | Public Route Table sem rota para o IGW | Configurar corretamente `0.0.0.0/0 → IGW` na Public Route Table |
-| `ping` com 100% packet loss para amazon.com | amazon.com bloqueia ICMP nos servidores deles | Usar `curl -I` para validar conectividade — retornou HTTP 301 ✅ |
+| `ping` com 100% packet loss para amazon.com | amazon.com bloqueia ICMP | Usar `ping 8.8.8.8` e `curl -I` para validar — ambos confirmaram conectividade ✅ |
 
 ---
 
@@ -234,7 +224,7 @@ Durante a implementação, alguns problemas foram encontrados e resolvidos:
 - Entendimento prático da diferença entre **Internet Gateway** (subnet pública) e **NAT Gateway** (subnet privada)
 - Importância de associar corretamente as **tabelas de rota** a cada subnet
 - Como usar um **Bastion Host** para acessar instâncias em subnets privadas com segurança
-- Diferença entre bloqueio de ICMP e falha real de conectividade — validação com `curl`
+- Diferença entre bloqueio de ICMP e falha real de conectividade — validação com `ping 8.8.8.8` e `curl`
 - Troubleshooting de infraestrutura AWS em ambiente real
 
 ---
@@ -246,18 +236,11 @@ Durante a implementação, alguns problemas foram encontrados e resolvidos:
 ├── images/
 │   ├── CriandoVPC1.png
 │   ├── vpcCriada1.png
-│   ├── CriandoSUB-Rede1.png
 │   ├── PublicSUBNet1.png
 │   ├── PrivateSUBNet1.png
 │   ├── IPAutomatico.png
-│   ├── CriandoTabelaDeRota1.png
-│   ├── EditarRotasGateway.png
 │   ├── TabelaDeRotasGatewaydaInternet.png
-│   ├── RotaGatewayDalnternet.png
-│   ├── RotaGatewayNAT.png
-│   ├── RotaNATGateway4.png
 │   ├── RotaPrivadaNat.png
-│   ├── TabeladeRota1.png
 │   ├── GatewayNAT.png
 │   ├── EC2BastionServer.png
 │   ├── PrivateInstance.png
