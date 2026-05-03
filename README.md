@@ -229,27 +229,6 @@ Durante a implementação, alguns problemas foram encontrados e resolvidos:
 
 ---
 
-## 📁 Estrutura do Repositório
-
-```
-.
-├── images/
-│   ├── CriandoVPC1.png
-│   ├── vpcCriada1.png
-│   ├── PublicSUBNet1.png
-│   ├── PrivateSUBNet1.png
-│   ├── IPAutomatico.png
-│   ├── TabelaDeRotasGatewaydaInternet.png
-│   ├── RotaPrivadaNat.png
-│   ├── GatewayNAT.png
-│   ├── EC2BastionServer.png
-│   ├── PrivateInstance.png
-│   └── ping.png
-└── README.md
-```
-
----
-
 ## 👤 Autor
 
 Feito como parte de estudos práticos em Cloud Computing — AWS.
